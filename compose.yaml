@@ -1,0 +1,8 @@
+name: watch-together
+
+services:
+  watch-together:
+    image: ghcr.io/luvhx/watch-together:latest
+    ports:
+      - "8364:8364"
+    restart: unless-stopped

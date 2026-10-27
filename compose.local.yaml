@@ -1,0 +1,4 @@
+services:
+  watch-together:
+    image: watch-together:local
+    build: .

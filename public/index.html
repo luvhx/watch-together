@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0b0c" />
+    <meta
+      name="description"
+      content="一起看：房主粘贴视频直链，访客从同一地址加载并实时同步播放进度；支持外挂 ASS / VTT / SRT 字幕、房间聊天与弹幕。"
+    />
+    <title>一起看 · 同步放映厅</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <svg class="svg-sprite" aria-hidden="true">
+      <defs>
+        <symbol id="i-play" viewBox="0 0 24 24">
+          <path d="M8 5.2v13.6L19 12 8 5.2Z" fill="currentColor" />
+        </symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24">
+          <path d="M7 5h3.4v14H7V5Zm6.6 0H17v14h-3.4V5Z" fill="currentColor" />
+        </symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24">
+          <path
+            d="M4 9.2v5.6h3.4L12 19V5L7.4 9.2H4Zm11.1-.9a5.1 5.1 0 0 1 0 7.4m2.5-10a8.4 8.4 0 0 1 0 12.6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-muted" viewBox="0 0 24 24">
+          <path
+            d="M4 9.2v5.6h3.4L12 19V5L7.4 9.2H4Zm11 1.8 5 5m0-5-5 5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-expand" viewBox="0 0 24 24">
+          <path
+            d="M9 4H4v5m11-5h5v5M9 20H4v-5m11 5h5v-5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24">
+          <rect
+            x="8.5"
+            y="8.5"
+            width="11"
+            height="11"
+            rx="2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+          />
+          <path
+            d="M15.5 8.5v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+          />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path
+            d="M5 12h14m-6-6 6 6-6 6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+          <rect
+            x="5.5"
+            y="10"
+            width="13"
+            height="10"
+            rx="2.4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+          />
+          <path
+            d="M8.5 10V7.6a3.5 3.5 0 0 1 7 0V10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+          />
+        </symbol>
+        <symbol id="i-crown" viewBox="0 0 24 24">
+          <path
+            d="m4 8 4 3 4-6 4 6 4-3-1.6 10H5.6L4 8Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linejoin="round"
+          />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path
+            d="m6 6 12 12M18 6 6 18"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.9"
+            stroke-linecap="round"
+          />
+        </symbol>
+      </defs>
+    </svg>
+
+    <!-- 首页 -->
+    <div id="landing-view">
+      <header class="topbar container">
+        <a class="brand" href="/" aria-label="一起看首页">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span class="brand-name">一起看</span>
+        </a>
+        <p class="topbar-note"><span class="live-dot"></span> 直链同步放映</p>
+      </header>
+
+      <main class="landing container">
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">WATCH TOGETHER</p>
+            <h1>一起看，<br /><em>进度同步。</em></h1>
+            <p class="lede">
+              粘贴视频直链，创建房间。朋友从同一片源开始，播放、暂停和拖动都会自动对齐。
+            </p>
+            <ul class="feature-chips" aria-label="产品特性">
+              <li>直链播放</li>
+              <li>实时同步</li>
+              <li>外挂字幕</li>
+              <li>聊天弹幕</li>
+            </ul>
+
+          </div>
+
+          <section class="create-panel" aria-labelledby="create-heading">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker">NEW ROOM</p>
+                <h2 id="create-heading">创建房间</h2>
+              </div>
+            </div>
+
+            <form id="create-form" novalidate>
+              <div class="field">
+                <label for="video-url">视频直链 <span>必填</span></label>
+                <div class="input-wrap">
+                  <input
+                    id="video-url"
+                    name="videoUrl"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="https://cdn.example.com/movie.mp4"
+                    required
+                  />
+                  <span class="input-mark" aria-hidden="true">URL</span>
+                </div>
+                <p class="field-hint">MP4 / WebM / HLS（.m3u8）· 不支持视频网站页面链接</p>
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="room-title">房间名称 <span>可选</span></label>
+                  <input
+                    id="room-title"
+                    name="title"
+                    type="text"
+                    maxlength="60"
+                    placeholder="周五电影夜"
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="field">
+                  <label for="host-name">你的昵称 <span>可选</span></label>
+                  <input
+                    id="host-name"
+                    name="hostName"
+                    type="text"
+                    maxlength="24"
+                    placeholder="房主"
+                    autocomplete="nickname"
+                  />
+                </div>
+              </div>
+
+              <p id="create-error" class="form-error" role="alert" hidden></p>
+
+              <button id="create-button" class="btn btn-primary btn-wide" type="submit">
+                <span>创建房间</span>
+                <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
+              </button>
+            </form>
+
+            <p class="panel-foot">
+              <svg class="icon icon-small" aria-hidden="true"><use href="#i-lock"></use></svg>
+              片源不会经过本服务，浏览器直接从原地址拉流。
+            </p>
+          </section>
+        </section>
+
+      </main>
+
+      <footer class="site-footer container">
+        <span>一起看</span>
+        <span>自托管 · 无账号</span>
+      </footer>
+    </div>
+
+    <!-- 加入房间 -->
+    <div id="join-view" hidden>
+      <header class="topbar container">
+        <a class="brand" href="/" aria-label="一起看首页">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span class="brand-name">一起看</span>
+        </a>
+        <a class="text-link" href="/">创建一个房间 <svg class="icon icon-small" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+      </header>
+
+      <main class="join-main container">
+        <section class="join-card" aria-labelledby="join-title">
+          <p class="eyebrow"><span>INVITE</span> PRIVATE SCREENING</p>
+          <p class="join-kicker">你收到了一张放映邀请</p>
+          <h1 id="join-title">正在读取房间…</h1>
+          <p id="join-byline" class="join-byline">请稍候</p>
+
+          <div id="join-details" class="join-details">
+            <div>
+              <span>片源来源</span>
+              <b id="join-source">—</b>
+            </div>
+            <div>
+              <span>当前在线</span>
+              <b id="join-members">—</b>
+            </div>
+            <div>
+              <span>房主状态</span>
+              <b id="join-host-state">—</b>
+            </div>
+          </div>
+
+          <form id="join-form" novalidate>
+            <div class="field">
+              <label for="join-name">你的昵称 <span>房间内可见</span></label>
+              <input
+                id="join-name"
+                name="name"
+                type="text"
+                maxlength="24"
+                placeholder="怎么称呼你？"
+                autocomplete="nickname"
+              />
+            </div>
+            <p id="join-error" class="form-error" role="alert" hidden></p>
+            <button id="join-button" class="btn btn-primary btn-wide" type="submit">
+              <span>加入放映厅</span>
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>
+            </button>
+          </form>
+
+          <div id="join-missing" class="join-missing" hidden>
+            <p>这个房间不存在，或已经散场。</p>
+            <a class="btn btn-primary" href="/">开一间新的放映厅</a>
+          </div>
+
+          <p class="join-note">
+            <svg class="icon icon-small" aria-hidden="true"><use href="#i-lock"></use></svg>
+            进入后，播放进度会自动跟随房主。
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <!-- 房间 -->
+    <div id="room-view" hidden>
+      <header class="room-bar container-wide">
+        <a class="brand brand-compact" href="/" aria-label="一起看首页">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span class="brand-name">一起看</span>
+        </a>
+
+        <div class="room-bar-mid">
+          <button id="copy-code" class="code-button" type="button" title="复制房间链接">
+            <span>ROOM</span>
+            <b id="room-code-label">——</b>
+            <svg class="icon icon-small" aria-hidden="true"><use href="#i-copy"></use></svg>
+          </button>
+          <span id="connection-state" class="connection-pill" data-state="connecting">
+            <i></i><span id="connection-text">连接中</span>
+          </span>
+        </div>
+
+        <div class="room-bar-right">
+          <div class="presence-inline">
+            <div id="avatar-stack" class="avatar-stack" aria-hidden="true"></div>
+            <span id="member-count">1 人在场</span>
+          </div>
+          <button id="leave-button" class="leave-button" type="button">
+            <span>离开</span>
+            <svg class="icon icon-small" aria-hidden="true"><use href="#i-close"></use></svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="room-main container-wide">
+        <section class="stage">
+          <div id="player-shell" class="player-shell">
+            <video id="video" playsinline preload="metadata" aria-label="视频播放器"></video>
+            <div class="player-vignette" aria-hidden="true"></div>
+            <div id="subtitle-overlay" class="subtitle-overlay" aria-hidden="true" hidden></div>
+            <div id="danmaku-layer" class="danmaku-layer" aria-hidden="true"></div>
+
+            <div id="player-topline" class="player-topline">
+              <span id="room-status" class="status-chip" data-tone="idle" role="status" aria-live="polite">
+                <i></i><span id="room-status-text">正在连接</span>
+              </span>
+              <span id="host-presence" class="host-chip">
+                <svg class="icon icon-small" aria-hidden="true"><use href="#i-crown"></use></svg>
+                <span>连接中</span>
+              </span>
+            </div>
+
+            <div id="player-curtain" class="player-curtain">
+              <div class="curtain-inner">
+                <span id="curtain-kicker" class="curtain-kicker">WELCOME TO THE ROOM</span>
+                <h2 id="curtain-title">正在进入放映厅…</h2>
+                <p id="curtain-text">连接成功后，画面会在这里出现。</p>
+                <button id="curtain-button" class="btn btn-primary" type="button" hidden>
+                  <svg class="icon" aria-hidden="true"><use href="#i-play"></use></svg>
+                  <span>同步播放</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="player-spinner" class="player-spinner" hidden>
+              <span class="spinner"></span>
+              <p id="spinner-text">正在加载片源…</p>
+            </div>
+
+            <div id="player-error" class="player-error" hidden>
+              <span class="error-mark" aria-hidden="true">!</span>
+              <h3>片源加载失败</h3>
+              <p id="player-error-text">
+                请检查直链是否可访问，以及服务器是否允许跨域请求。
+              </p>
+              <button id="retry-source" class="btn btn-ghost" type="button">重新加载</button>
+            </div>
+
+            <div id="player-bottom" class="player-bottom">
+              <div class="timeline">
+                <input
+                  id="seek-range"
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  value="0"
+                  aria-label="播放进度"
+                />
+              </div>
+              <div class="control-row">
+                <button
+                  id="play-toggle"
+                  class="control-button"
+                  type="button"
+                  aria-label="播放"
+                  disabled
+                >
+                  <svg class="icon icon-play" aria-hidden="true"><use href="#i-play"></use></svg>
+                  <svg class="icon icon-pause" aria-hidden="true"><use href="#i-pause"></use></svg>
+                </button>
+                <span class="time-display">
+                  <span id="current-time">00:00</span>
+                  <span class="time-divider">/</span>
+                  <span id="duration-time">00:00</span>
+                </span>
+
+                <div class="volume-group">
+                  <button
+                    id="mute-toggle"
+                    class="control-button control-button-small"
+                    type="button"
+                    aria-label="静音"
+                  >
+                    <svg class="icon icon-volume" aria-hidden="true"><use href="#i-volume"></use></svg>
+                    <svg class="icon icon-muted" aria-hidden="true"><use href="#i-muted"></use></svg>
+                  </button>
+                  <input
+                    id="volume-range"
+                    class="volume-range"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value="100"
+                    aria-label="音量"
+                  />
+                </div>
+
+                <span class="control-spacer"></span>
+
+                <span id="sync-indicator" class="sync-indicator" data-state="waiting">
+                  <i></i><span id="sync-text">等待同步</span>
+                </span>
+                <button
+                  id="subtitle-button"
+                  class="subtitle-button"
+                  type="button"
+                  aria-label="字幕"
+                  aria-expanded="false"
+                  aria-controls="subtitle-panel"
+                  title="字幕"
+                >
+                  <span>CC</span>
+                </button>
+                <button
+                  id="speed-button"
+                  class="speed-button"
+                  type="button"
+                  title="播放速度（仅房主可调）"
+                  disabled
+                >
+                  1×
+                </button>
+                <button
+                  id="fullscreen-button"
+                  class="control-button control-button-small"
+                  type="button"
+                  aria-label="全屏"
+                >
+                  <svg class="icon" aria-hidden="true"><use href="#i-expand"></use></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="subtitle-panel" class="subtitle-panel" role="dialog" aria-label="字幕设置" hidden>
+              <div class="subtitle-panel-head">
+                <div>
+                  <span class="subtitle-panel-kicker">SUBTITLES</span>
+                  <h3>字幕</h3>
+                </div>
+                <button id="subtitle-close" class="subtitle-close" type="button" aria-label="关闭字幕设置">
+                  <svg class="icon icon-small" aria-hidden="true"><use href="#i-close"></use></svg>
+                </button>
+              </div>
+
+              <div id="subtitle-list" class="subtitle-list"></div>
+
+              <form id="subtitle-form" class="subtitle-form" novalidate>
+                <label for="subtitle-url">添加字幕文件 URL</label>
+                <div class="subtitle-url-row">
+                  <input
+                    id="subtitle-url"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="https://cdn.example.com/movie.ass"
+                  />
+                  <button id="subtitle-add" type="submit">
+                    <span>添加</span>
+                  </button>
+                </div>
+                <p class="subtitle-hint">支持 ASS / SSA（保留样式）、WebVTT、SRT；跨域文件需允许 CORS。</p>
+                <p id="subtitle-error" class="subtitle-error" role="alert" hidden></p>
+              </form>
+
+              <p class="subtitle-privacy">字幕设置只影响你的播放器。</p>
+            </div>
+          </div>
+
+          <div class="stage-meta">
+            <div class="title-block">
+              <div class="title-row">
+                <h1 id="room-heading">未命名放映厅</h1>
+                <span id="role-badge" class="role-badge">访客</span>
+              </div>
+              <p id="room-byline">正在读取房间信息…</p>
+            </div>
+            <button id="copy-invite" class="btn btn-ghost" type="button">
+              <svg class="icon icon-small" aria-hidden="true"><use href="#i-copy"></use></svg>
+              复制邀请链接
+            </button>
+          </div>
+
+        </section>
+
+        <aside class="room-side">
+          <section class="side-card room-summary">
+            <div class="side-head">
+              <h2>放映厅</h2>
+              <span id="side-code" class="side-code">——</span>
+            </div>
+            <p class="side-desc">邀请朋友，共享同一条时间轴。</p>
+            <div class="stat-grid">
+              <div>
+                <span>在场</span>
+                <b id="side-members">1</b>
+              </div>
+              <div>
+                <span>身份</span>
+                <b id="side-role">访客</b>
+              </div>
+            </div>
+            <button id="copy-invite-2" class="btn btn-primary btn-wide" type="button">
+              <svg class="icon icon-small" aria-hidden="true"><use href="#i-copy"></use></svg>
+              复制邀请链接
+            </button>
+          </section>
+
+          <section class="side-card chat-card" aria-labelledby="chat-heading">
+            <div class="chat-head">
+              <div class="chat-title-row">
+                <h2 id="chat-heading">聊天室</h2>
+                <span class="chat-live"><i></i>LIVE</span>
+              </div>
+              <button
+                id="danmaku-toggle"
+                class="danmaku-toggle"
+                type="button"
+                aria-pressed="true"
+                data-active="true"
+                title="让聊天消息从画面飘过"
+              >
+                <span class="danmaku-switch" aria-hidden="true"><i></i></span>
+                <span>弹幕</span>
+              </button>
+            </div>
+            <ul id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-relevant="additions"></ul>
+            <form id="chat-form" class="chat-form" novalidate>
+              <label class="visually-hidden" for="chat-input">聊天内容</label>
+              <input
+                id="chat-input"
+                type="text"
+                maxlength="200"
+                autocomplete="off"
+                placeholder="连接后就能聊天…"
+                disabled
+              />
+              <button id="chat-send" type="submit" disabled>发送</button>
+            </form>
+          </section>
+
+          <section class="side-card">
+            <div class="side-head">
+              <h2>在场的人</h2>
+              <span id="side-presence" class="side-badge">1</span>
+            </div>
+            <ul id="member-list" class="member-list"></ul>
+          </section>
+
+        </aside>
+      </main>
+
+      <footer class="site-footer container-wide">
+        <span>一起看</span>
+        <span id="footer-room">ROOM ——</span>
+      </footer>
+    </div>
+
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  </body>
+</html>
