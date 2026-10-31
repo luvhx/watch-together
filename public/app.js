@@ -46,6 +46,10 @@ const state = {
   sourceLoaded: false,
   sourceReady: false,
   sourceUrl: '',
+  compat: {
+    active: false,
+    url: '',
+  },
   hls: null,
   hostBuffering: false,
   applyingRemote: false,
@@ -214,6 +218,7 @@ function cacheElements() {
     'player-error',
     'player-error-text',
     'retry-source',
+    'compat-source',
     'player-shell',
     'player-bottom',
     'player-topline',
@@ -275,6 +280,7 @@ function bindEvents() {
   els.curtainButton.addEventListener('click', onCurtainAction);
   els.playToggle.addEventListener('click', togglePlayback);
   els.retrySource.addEventListener('click', retrySource);
+  els.compatSource.addEventListener('click', startCompatibilityMode);
   els.muteToggle.addEventListener('click', toggleMute);
   els.speedButton.addEventListener('click', cycleSpeed);
   els.fullscreenButton.addEventListener('click', toggleFullscreen);
@@ -734,7 +740,7 @@ function handleWelcome(message) {
   setChatHistory(Array.isArray(message.chat) ? message.chat : []);
   refreshChatState();
 
-  if (!state.sourceLoaded || state.sourceUrl !== state.room.videoUrl) {
+  if (!state.sourceLoaded || state.sourceUrl !== effectiveSourceUrl()) {
     setupSource();
   }
 
@@ -1638,9 +1644,15 @@ function targetPosition() {
   return Math.max(0, position);
 }
 
-function setupSource() {
+function effectiveSourceUrl() {
+  if (state.compat.active && state.compat.url) return state.compat.url;
+  return state.room?.videoUrl || '';
+}
+
+function setupSource(overrideUrl) {
   if (!state.room) return;
-  const url = state.room.videoUrl;
+  const url = overrideUrl || effectiveSourceUrl();
+  if (!url) return;
   if (state.sourceLoaded && state.sourceUrl === url) return;
 
   destroyHls();
@@ -1730,8 +1742,11 @@ async function setupHls(url) {
     hls.on(Hls.Events.MANIFEST_PARSED, syncHlsSubtitleTracks);
     hls.on(Hls.Events.ERROR, (_event, data) => {
       if (!data?.fatal) return;
-      const message =
-        data.type === Hls.ErrorTypes.NETWORK_ERROR
+      const message = state.compat.active
+        ? data.type === Hls.ErrorTypes.NETWORK_ERROR
+          ? '兼容模式的 HLS 清单或分片加载失败，服务器可能未完成封装。'
+          : '当前设备无法解码兼容模式输出的视频编码。'
+        : data.type === Hls.ErrorTypes.NETWORK_ERROR
           ? 'HLS 清单或分片加载失败。请确认直链允许跨域访问，且没有过期。'
           : '这个 HLS 流无法被当前浏览器解码。';
       destroyHls();
@@ -1878,14 +1893,25 @@ function onVideoError() {
   const mediaError = els.video.error;
   let message =
     '请检查直链是否仍可访问且未过期；HLS 片源还需要允许跨域请求（CORS）。';
-  if (mediaError?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+  if (state.compat.active) {
+    message =
+      '兼容模式加载失败。可能是片源无法访问，或当前设备仍不支持该视频编码（例如 HEVC 10-bit）。';
+  } else if (mediaError?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
     message = isMatroskaUrl(state.sourceUrl)
-      ? '浏览器无法解码这个 MKV。MKV/HEVC/10-bit 支持取决于浏览器；内封字幕可读取，但视频本身需能播放。建议改用 MP4（H.264）或 HLS。'
+      ? '浏览器无法解码这个 MKV。iPad/Safari 不支持 MKV 容器；可以点击「兼容播放」由服务器重新封装为 HLS。'
       : '浏览器无法解码这个格式，或直链已失效。建议使用 MP4（H.264）或 HLS。';
   } else if (mediaError?.code === MediaError.MEDIA_ERR_NETWORK) {
     message = '下载片源时网络中断，请检查链接和网络。';
   } else if (window.location.protocol === 'https:' && /^http:\/\//i.test(state.sourceUrl)) {
     message = 'HTTPS 页面不能加载 HTTP 片源，请给视频地址配置 HTTPS。';
+  }
+  if (
+    !state.compat.active &&
+    isMatroskaUrl(state.room?.videoUrl || '') &&
+    mediaError?.code !== MediaError.MEDIA_ERR_NETWORK
+  ) {
+    message =
+      '浏览器无法播放这个 MKV。iPad/Safari 不支持 MKV 容器；可以点击「兼容播放」由服务器重新封装为 HLS。';
   }
   showVideoError(message);
 }
@@ -1899,9 +1925,44 @@ function showVideoError(message) {
   hideSpinner();
   els.playerError.hidden = false;
   els.playerErrorText.textContent = message;
+  const canCompat =
+    state.compat.active || isMatroskaUrl(state.room?.videoUrl || '');
+  els.compatSource.hidden = !canCompat;
+  els.compatSource.textContent = state.compat.active ? '重试兼容播放' : '兼容播放';
   els.playerCurtain.hidden = true;
   refreshControls();
   refreshStatus();
+}
+
+async function startCompatibilityMode() {
+  if (!state.roomId || !state.room) return;
+  const url = `${window.location.origin}/api/rooms/${encodeURIComponent(state.roomId)}/compat/index.m3u8`;
+  state.compat.active = true;
+  state.compat.url = url;
+  els.playerError.hidden = true;
+  els.playerSpinner.hidden = false;
+  els.spinnerText.textContent = '正在准备兼容模式，首次可能需要几十秒…';
+  showPlayerControls();
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) {
+      let message = `兼容模式启动失败（HTTP ${response.status}）`;
+      try {
+        const body = await response.json();
+        message = body?.error?.message || message;
+      } catch {
+        // 保留默认提示。
+      }
+      throw new Error(message);
+    }
+    const playlist = await response.text();
+    if (!playlist.includes('#EXTM3U')) {
+      throw new Error('兼容模式返回了无效的播放清单。');
+    }
+    setupSource(url);
+  } catch (error) {
+    showVideoError(error.message || '兼容模式启动失败。');
+  }
 }
 
 function hideSpinner() {

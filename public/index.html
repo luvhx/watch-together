@@ -209,7 +209,7 @@
 
             <p class="panel-foot">
               <svg class="icon icon-small" aria-hidden="true"><use href="#i-lock"></use></svg>
-              片源不会经过本服务，浏览器直接从原地址拉流。
+              默认直接从原地址拉流；兼容模式会按需由服务器生成临时 HLS 分片。
             </p>
           </section>
         </section>
@@ -358,7 +358,12 @@
               <p id="player-error-text">
                 请检查直链是否可访问，以及服务器是否允许跨域请求。
               </p>
-              <button id="retry-source" class="btn btn-ghost" type="button">重新加载</button>
+              <div class="player-error-actions">
+                <button id="retry-source" class="btn btn-ghost" type="button">重新加载</button>
+                <button id="compat-source" class="btn btn-primary" type="button" hidden>
+                  兼容播放
+                </button>
+              </div>
             </div>
 
             <div id="player-bottom" class="player-bottom">

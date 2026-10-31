@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 
 import { loadConfig } from './config.js';
+import { CompatHlsService } from './compat-hls.js';
 import { EmbeddedSubtitleService } from './embedded-subtitles.js';
 import { createHttpHandler } from './http.js';
 import { RoomHub } from './realtime.js';
@@ -11,6 +12,7 @@ export function createApplication({
   logger = console,
   publicDir,
   embeddedSubtitles,
+  compatHls,
 } = {}) {
   const store = new RoomStore({
     roomTtlMs: config.roomTtlMs,
@@ -26,11 +28,21 @@ export function createApplication({
       allowPrivateMedia: config.allowPrivateMedia,
       logger,
     });
+  const compatService =
+    compatHls ??
+    new CompatHlsService({
+      ffmpegPath: config.ffmpegPath,
+      ffprobePath: config.ffprobePath,
+      allowPrivateMedia: config.allowPrivateMedia,
+      maxJobs: config.compatHlsMaxJobs,
+      logger,
+    });
   const handleRequest = createHttpHandler({
     store,
     hub,
     config,
     embeddedSubtitles: subtitleService,
+    compatHls: compatService,
     ...(publicDir ? { publicDir } : {}),
   });
 
@@ -64,6 +76,7 @@ export function createApplication({
     hub,
     server,
     embeddedSubtitles: subtitleService,
+    compatHls: compatService,
     async listen(port = config.port, host = config.host) {
       await new Promise((resolve, reject) => {
         const onError = (error) => {
@@ -84,6 +97,7 @@ export function createApplication({
       if (closed) return;
       closed = true;
       subtitleService.close?.();
+      await compatService.close?.();
       hub.close();
       await new Promise((resolve) => {
         const timer = setTimeout(() => {

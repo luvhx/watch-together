@@ -20,6 +20,7 @@
 - **MP4 / WebM / HLS**：HLS 按需加载内置的 hls.js，Safari 使用原生 HLS。
 - **外挂字幕**：读取浏览器 / HLS 内嵌字幕轨道，也可通过 URL 添加 WebVTT、SRT、ASS / SSA；ASS 支持常用字体、颜色、描边、阴影、对齐和定位样式。
 - **MKV 内封字幕**：服务端使用 FFprobe / FFmpeg 扫描影片内封文字字幕，按需提取为 ASS；PGS 等图形字幕不支持。
+- **兼容播放**：iPad / Safari 不能播放 MKV 时，可点击「兼容播放」，由服务器把原片重新封装为 HLS；视频通常直接 copy，音频转 AAC，适合 HEVC/H.264 片源。
 - **更易读的界面**：整体上调小字号，聊天、侧栏、字幕菜单和播放器控制更适合长时间观看。
 - **房间聊天与弹幕**：房间内置实时聊天室，新消息可同时以弹幕从视频画面上飘过；支持一键开关弹幕，聊天记录仍保留。
 - **开箱即用**：无需账号、数据库、Redis、`.env` 或构建步骤；简洁深色界面，桌面与移动端自适应。
@@ -33,7 +34,7 @@
                                 │   ├─ 房间与播放锚点（内存）
 访客 B 浏览器 ── WebSocket(同步) ──┘   └─ 静态前端 + API
        │
-       └──── 直接向视频源请求 MP4 / HLS 分片（不经过服务器）
+       └──── 默认直接向视频源请求 MP4 / HLS 分片（不经过服务器）
 ```
 
 服务端保存的时间轴形如：
@@ -46,7 +47,7 @@ position_at(T) = anchor_position + (T - anchor_at) / 1000 * rate
 
 ## Docker Compose 部署
 
-镜像已发布到 GHCR，支持 `linux/amd64` 与 `linux/arm64`，无需配置环境变量；镜像内置 FFmpeg，可直接读取 MKV 内封字幕。
+镜像已发布到 GHCR，支持 `linux/amd64` 与 `linux/arm64`，无需配置环境变量；镜像内置 FFmpeg，可直接读取 MKV 内封字幕和使用兼容播放。
 
 ```bash
 docker compose pull
@@ -72,7 +73,7 @@ docker compose pull && docker compose up -d
 
 ## 本地开发
 
-要求 Node.js 20.19+（推荐 24）。读取 MKV 内封字幕还需要本机安装 `ffmpeg` / `ffprobe`；Docker 镜像已内置。
+要求 Node.js 20.19+（推荐 24）。读取 MKV 内封字幕和兼容播放还需要本机安装 `ffmpeg` / `ffprobe`；Docker 镜像已内置。
 
 ```bash
 npm ci
@@ -127,7 +128,19 @@ npm run check   # 所有 JS 语法检查
 - **服务器访问**：读取内封字幕时服务器需要能访问影片 URL。默认允许局域网、本机、Tailscale 与 fake-IP 地址；始终阻止云 metadata 地址，并限制提取频率。公网部署可设 `ALLOW_PRIVATE_MEDIA=0`。这会消耗服务器带宽。
 - **内置示例**：在 CC 菜单粘贴 `/subtitles/demo.ass` 或 `/subtitles/demo.vtt`，可以直接预览字幕与 ASS 样式。
 
-## 直链要求
+## iPad / MKV 兼容播放
+
+Safari / iPadOS 不支持 MKV 容器。播放器报「浏览器无法解码这个 MKV」时，点击错误面板里的「兼容播放」：
+
+- 服务器使用 FFmpeg 把原片重新封装成 HLS（fMP4）
+- H.264 / HEVC 视频通常直接 copy，不重新编码
+- 音频统一转为 AAC，视频编码不变
+- HLS 在 iPad 上由 Safari 原生播放
+- 首次准备需要生成首个分片，可能需要几秒到几十秒；之后会复用缓存
+
+兼容播放会占用服务器的网络、CPU 和临时磁盘。视频通常直接 copy，只有音频转 AAC；遇到 Safari 不支持的冷门编码才会转 H.264。默认最多同时处理 2 个房间，房间关闭、空闲 20 分钟或超过 90 分钟会自动清理。HEVC 10-bit 最终仍取决于 iPad 硬件和 Safari 的解码能力；若设备完全不支持该编码，兼容模式也无法播放。
+
+
 
 - 必须是**浏览器可直接打开的媒体地址**，而不是视频网站页面：
   - ✅ `https://cdn.example.com/movie.mp4`
@@ -197,7 +210,8 @@ server {
 - 同一来源限制房间创建、查询与 WebSocket 握手频率；单房间人数和房间总数均有上限。
 - 响应包含 CSP、`X-Frame-Options: DENY`、`nosniff`、`Referrer-Policy: no-referrer`。
 - 生产环境请务必配置 HTTPS：房主凭证保存在浏览器本地，并通过 WebSocket 传输。
-- 内封字幕读取会由服务器访问影片地址。默认允许内网 HTTP(S) 媒体，以适配局域网、本机、Tailscale 与 fake-IP 片库；始终阻止云 metadata 地址。公网部署建议设 `ALLOW_PRIVATE_MEDIA=0`。
+- 内封字幕读取与兼容播放会由服务器访问影片地址。默认允许内网 HTTP(S) 媒体，以适配局域网、本机、Tailscale 与 fake-IP 片库；始终阻止云 metadata 地址。公网部署建议设 `ALLOW_PRIVATE_MEDIA=0`。
+- 兼容播放会在临时目录生成 HLS 分片，按房间做并发与过期清理；不需要持久卷。
 
 ## HTTP / WebSocket 协议
 
@@ -211,6 +225,8 @@ server {
 | `GET` | `/api/health` | 健康检查 |
 | `GET` | `/api/rooms/:id/embedded-subtitles` | 扫描房间影片的内封字幕轨 |
 | `GET` | `/api/rooms/:id/embedded-subtitles/:track` | 提取指定内封字幕为 ASS |
+| `GET` | `/api/rooms/:id/compat/index.m3u8` | 启动/读取兼容模式 HLS 清单 |
+| `GET` | `/api/rooms/:id/compat/:segment` | 兼容模式 HLS 分片 |
 | `GET` | `/r/:id` | 邀请链接，302 到首页房间视图 |
 
 ### WebSocket `/ws?room=<roomId>`
@@ -243,6 +259,7 @@ server {
 ├── server/
 │   ├── app.js          # 应用装配与优雅关闭
 │   ├── config.js       # 环境变量
+│   ├── compat-hls.js   # 可选 HLS 兼容播放
 │   ├── embedded-subtitles.js # FFmpeg 内封字幕探测与提取
 │   ├── http.js         # 静态资源、API、安全响应头
 │   ├── realtime.js     # WebSocket 房间中枢

@@ -43,5 +43,6 @@ export function loadConfig(env = process.env) {
     ffprobePath: env.FFPROBE_PATH || 'ffprobe',
     // 自托管媒体库常在局域网/本机/Tailscale/fake-IP 上；公网实例可设为 0 收紧。
     allowPrivateMedia: booleanFromEnv(env, 'ALLOW_PRIVATE_MEDIA', true),
+    compatHlsMaxJobs: integerFromEnv(env, 'COMPAT_HLS_MAX_JOBS', 2, 1, 4),
   });
 }

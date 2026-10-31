@@ -941,6 +941,14 @@ ul {
   line-height: 1.7;
 }
 
+.player-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .player-bottom {
   position: absolute;
   right: 0;

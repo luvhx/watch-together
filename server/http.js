@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { CompatHlsError } from './compat-hls.js';
 import { EmbeddedSubtitleError } from './embedded-subtitles.js';
 import { createRateLimiter } from './rate-limit.js';
 import {
@@ -253,6 +254,29 @@ async function serveFile(req, res, filePath, { cacheControl }) {
   stream.pipe(res);
 }
 
+function parseByteRange(header, size) {
+  if (typeof header !== 'string' || !header.startsWith('bytes=')) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match) return { invalid: true };
+  const [, rawStart, rawEnd] = match;
+  if (!rawStart && !rawEnd) return { invalid: true };
+  let start;
+  let end;
+  if (!rawStart) {
+    const suffix = Number(rawEnd);
+    if (!Number.isInteger(suffix) || suffix <= 0) return { invalid: true };
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number(rawStart);
+    end = rawEnd ? Number(rawEnd) : size - 1;
+  }
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start > end || start >= size) {
+    return { invalid: true };
+  }
+  return { start, end: Math.min(end, size - 1) };
+}
+
 /**
  * 创建 HTTP 请求处理器。所有可变状态由外部传入，便于测试和多实例之外的自定义。
  */
@@ -262,6 +286,7 @@ export function createHttpHandler({
   config,
   publicDir = DEFAULT_PUBLIC_DIR,
   embeddedSubtitles = null,
+  compatHls = null,
   now = Date.now,
 }) {
   const createLimiter = createRateLimiter({
@@ -354,6 +379,99 @@ export function createHttpHandler({
       }
 
 
+      const compatMatch = pathname.match(
+        /^\/api\/rooms\/([^/]+)\/compat\/([^/]+)\/?$/,
+      );
+      if (compatMatch) {
+        if (req.method !== 'GET' && req.method !== 'HEAD') {
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', '不支持的请求方法', {
+            Allow: 'GET, HEAD',
+          });
+        }
+        let roomId;
+        let fileName;
+        try {
+          roomId = normalizeRoomId(decodeURIComponent(compatMatch[1]));
+          fileName = decodeURIComponent(compatMatch[2]);
+        } catch {
+          roomId = null;
+        }
+        if (!roomId || !fileName) {
+          throw new HttpError(404, 'ROOM_NOT_FOUND', '房间不存在');
+        }
+        const room = store.get(roomId);
+        if (!room) {
+          throw new HttpError(404, 'ROOM_NOT_FOUND', '房间不存在或已过期');
+        }
+        if (!compatHls) {
+          throw new HttpError(
+            503,
+            'COMPAT_UNAVAILABLE',
+            '服务器未启用兼容播放',
+            {},
+            true,
+          );
+        }
+
+        try {
+          if (fileName === 'index.m3u8') {
+            const playlist = await compatHls.playlist(roomId, room.videoUrl);
+            const body = Buffer.from(playlist, 'utf8');
+            res.writeHead(200, {
+              'Content-Type': 'application/vnd.apple.mpegurl',
+              'Content-Length': body.length,
+              'Cache-Control': 'no-store',
+            });
+            res.end(req.method === 'HEAD' ? undefined : body);
+            return;
+          }
+
+          const file = await compatHls.file(roomId, fileName);
+          if (!file) {
+            throw new HttpError(404, 'COMPAT_FILE_NOT_FOUND', '分段文件不存在');
+          }
+          const range = parseByteRange(req.headers.range, file.size);
+          if (range?.invalid) {
+            res.writeHead(416, {
+              'Content-Range': `bytes */${file.size}`,
+              'Content-Length': 0,
+            });
+            res.end();
+            return;
+          }
+          const start = range?.start ?? 0;
+          const end = range?.end ?? file.size - 1;
+          const length = end - start + 1;
+          res.writeHead(range ? 206 : 200, {
+            'Content-Type': file.type,
+            'Content-Length': length,
+            'Accept-Ranges': 'bytes',
+            ...(range
+              ? { 'Content-Range': `bytes ${start}-${end}/${file.size}` }
+              : {}),
+            'Cache-Control': 'private, max-age=3600',
+          });
+          if (req.method === 'HEAD') {
+            res.end();
+            return;
+          }
+          const stream = compatHls.stream({
+            ...file,
+            start,
+            end,
+          });
+          stream.on('error', () => res.destroy());
+          res.on('close', () => stream.destroy());
+          stream.pipe(res);
+          return;
+        } catch (error) {
+          if (error instanceof CompatHlsError) {
+            throw new HttpError(error.status, error.code, error.message, {}, true);
+          }
+          throw error;
+        }
+      }
+
       const embeddedFileMatch = pathname.match(
         /^\/api\/rooms\/([^/]+)\/embedded-subtitles\/(\d+)\/?$/,
       );
@@ -428,6 +546,7 @@ export function createHttpHandler({
           }
           store.close(room.id);
           hub.closeRoom(room.id, '房主关闭了房间');
+          await compatHls?.removeJob(room.id);
           return sendJson(res, 200, { ok: true });
         }
 
