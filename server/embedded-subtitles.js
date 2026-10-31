@@ -13,6 +13,14 @@ const SUPPORTED_CODECS = new Set([
   'mov_text',
   'text',
 ]);
+const METADATA_IPV4 = new Set([
+  '169.254.169.254',
+  '169.254.169.253',
+  '169.254.170.2',
+  '169.254.0.23',
+  '100.100.100.200',
+  '168.63.129.16',
+]);
 const MAX_OUTPUT_BYTES = 12 * 1_024 * 1_024;
 const MAX_EXTRACT_CACHE_BYTES = 48 * 1_024 * 1_024;
 const MAX_STDERR_BYTES = 64 * 1_024;
@@ -88,37 +96,20 @@ export function isPrivateAddress(address) {
   return false;
 }
 
-function isDangerousIpv4(address) {
-  const parts = address.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return true;
-  }
-  const [a, b, c] = parts;
-  return (
-    a === 0 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    address === '100.100.100.200' ||
-    address === '168.63.129.16' ||
-    (a === 192 && b === 0 && c === 0) ||
-    (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224
-  );
+function isMetadataIpv4(address) {
+  return METADATA_IPV4.has(address);
 }
 
-export function isDangerousAddress(address) {
+export function isMetadataAddress(address) {
   const normalized = String(address).replace(/^\[|\]$/g, '').toLowerCase();
   const version = isIP(normalized);
-  if (version === 4) return isDangerousIpv4(normalized);
+  if (version === 4) return isMetadataIpv4(normalized);
   if (version !== 6) return true;
-
-  if (normalized === '::' || normalized === '::1') return true;
+  if (normalized === 'fd00:ec2::254') return true;
   if (normalized.startsWith('::ffff:')) {
     const mapped = normalized.slice('::ffff:'.length);
-    if (isIP(mapped) === 4) return isDangerousIpv4(mapped);
+    if (isIP(mapped) === 4) return isMetadataIpv4(mapped);
   }
-  if (/^fe[89ab]/.test(normalized)) return true;
-  if (normalized.startsWith('ff')) return true;
   return false;
 }
 
@@ -366,11 +357,11 @@ export class EmbeddedSubtitleService {
     if (!addresses.length) {
       throw new EmbeddedSubtitleError(422, 'MEDIA_UNREACHABLE', '无法解析影片地址');
     }
-    if (addresses.some((item) => isDangerousAddress(item.address))) {
+    if (addresses.some((item) => isMetadataAddress(item.address))) {
       throw new EmbeddedSubtitleError(
         400,
         'BLOCKED_MEDIA_ADDRESS',
-        '不允许读取回环、链路本地或保留影片地址',
+        '不允许读取云 metadata 地址',
       );
     }
     if (

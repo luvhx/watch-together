@@ -124,7 +124,7 @@ npm run check   # 所有 JS 语法检查
 - **MKV 内封字幕**：浏览器原生 `<video>` 无法读取 MKV 容器里的字幕轨。打开 CC 菜单时，服务器会用 FFprobe 扫描内封字幕并用 FFmpeg 按需转成 ASS；首次提取可能需要几秒到数十秒，之后会缓存。
 - **仅支持文字字幕**：ASS / SSA / SRT / WebVTT / mov_text 等可以转换；PGS、DVD 等图形字幕会标记为不支持。
 - **视频解码仍取决于浏览器**：提取字幕不会改变视频编码兼容性；MKV / HEVC 是否能播放由浏览器决定。
-- **服务器访问**：读取内封字幕时服务器需要能访问影片 URL。默认允许局域网 / Tailscale 地址；始终阻止回环、链路本地和云 metadata 地址，并限制提取频率。公网部署可设 `ALLOW_PRIVATE_MEDIA=0`。这会消耗服务器带宽。
+- **服务器访问**：读取内封字幕时服务器需要能访问影片 URL。默认允许局域网、本机、Tailscale 与 fake-IP 地址；始终阻止云 metadata 地址，并限制提取频率。公网部署可设 `ALLOW_PRIVATE_MEDIA=0`。这会消耗服务器带宽。
 - **内置示例**：在 CC 菜单粘贴 `/subtitles/demo.ass` 或 `/subtitles/demo.vtt`，可以直接预览字幕与 ASS 样式。
 
 ## 直链要求
@@ -145,7 +145,7 @@ npm run check   # 所有 JS 语法检查
 
 默认零配置：端口 `8364`、房间 12 小时过期、单房间 20 人。需要调整时，在 [compose.yaml](compose.yaml) 的 service 下添加对应环境变量（如 `ROOM_TTL_HOURS`）。
 
-内封字幕默认允许访问局域网 / Tailscale 媒体地址，适合自托管片库。如果实例直接暴露在公网，建议设置 `ALLOW_PRIVATE_MEDIA=0`，只允许公网地址；回环、链路本地和云 metadata 地址始终会被拒绝。
+内封字幕默认允许访问局域网、本机回环、Tailscale 和代理 fake-IP 等媒体地址，适合自托管片库。如果实例直接暴露在公网，建议设置 `ALLOW_PRIVATE_MEDIA=0`，只允许公网地址；云 metadata 地址始终会被拒绝。
 
 ## 反向代理
 
@@ -197,7 +197,7 @@ server {
 - 同一来源限制房间创建、查询与 WebSocket 握手频率；单房间人数和房间总数均有上限。
 - 响应包含 CSP、`X-Frame-Options: DENY`、`nosniff`、`Referrer-Policy: no-referrer`。
 - 生产环境请务必配置 HTTPS：房主凭证保存在浏览器本地，并通过 WebSocket 传输。
-- 内封字幕读取会由服务器访问影片地址。默认允许内网 HTTP(S) 媒体，以适配局域网 / Tailscale 片库；始终阻止回环、链路本地和云 metadata 地址。公网部署建议设 `ALLOW_PRIVATE_MEDIA=0`。
+- 内封字幕读取会由服务器访问影片地址。默认允许内网 HTTP(S) 媒体，以适配局域网、本机、Tailscale 与 fake-IP 片库；始终阻止云 metadata 地址。公网部署建议设 `ALLOW_PRIVATE_MEDIA=0`。
 
 ## HTTP / WebSocket 协议
 

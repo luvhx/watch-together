@@ -7,7 +7,7 @@ import { loadConfig } from '../server/config.js';
 import {
   EmbeddedSubtitleError,
   EmbeddedSubtitleService,
-  isDangerousAddress,
+  isMetadataAddress,
   isPrivateAddress,
   parseFfprobeStreams,
 } from '../server/embedded-subtitles.js';
@@ -146,36 +146,42 @@ test('图形字幕拒绝提取，空字幕输出报错', async (t) => {
   );
 });
 
-test('默认允许局域网媒体，但拦截回环和云 metadata 地址', async (t) => {
+test('默认放行局域网、本机与 fake-IP，拦截云 metadata', async (t) => {
   const { service, calls } = createService();
   t.after(() => service.close());
 
   await assert.rejects(
-    service.probe('http://127.0.0.1/movie.mkv'),
+    service.probe('http://169.254.169.254/latest/meta-data'),
     (error) =>
       error instanceof EmbeddedSubtitleError &&
       error.code === 'BLOCKED_MEDIA_ADDRESS',
   );
   await assert.rejects(
-    service.probe('http://169.254.169.254/latest/meta-data'),
+    service.probe('http://100.100.100.200/latest/meta-data'),
     (error) => error.code === 'BLOCKED_MEDIA_ADDRESS',
   );
   assert.equal(calls.length, 0);
 
-  const tracks = await service.probe('http://10.0.0.5/movie.mkv');
-  assert.equal(tracks.length, 3);
-  assert.equal(calls.length, 1);
+  const lan = await service.probe('http://10.0.0.5/movie.mkv');
+  assert.equal(lan.length, 3);
   assert.ok(calls[0].args.includes('http://10.0.0.5/movie.mkv'));
+  const loopback = await service.probe('http://127.0.0.1/movie.mkv');
+  assert.equal(loopback.length, 3);
+  const fakeIp = await service.probe('http://198.18.0.1/movie.mkv');
+  assert.equal(fakeIp.length, 3);
+  assert.equal(calls.length, 3);
 
   assert.equal(isPrivateAddress('10.0.0.1'), true);
   assert.equal(isPrivateAddress('192.168.1.4'), true);
   assert.equal(isPrivateAddress('100.64.0.1'), true);
+  assert.equal(isPrivateAddress('127.0.0.1'), true);
   assert.equal(isPrivateAddress('::1'), true);
   assert.equal(isPrivateAddress('fd00::1'), true);
   assert.equal(isPrivateAddress('93.184.216.34'), false);
-  assert.equal(isDangerousAddress('127.0.0.1'), true);
-  assert.equal(isDangerousAddress('169.254.1.2'), true);
-  assert.equal(isDangerousAddress('10.0.0.1'), false);
+  assert.equal(isMetadataAddress('169.254.169.254'), true);
+  assert.equal(isMetadataAddress('100.100.100.200'), true);
+  assert.equal(isMetadataAddress('fd00:ec2::254'), true);
+  assert.equal(isMetadataAddress('10.0.0.1'), false);
 });
 
 test('ALLOW_PRIVATE_MEDIA 默认开启并可关闭', () => {
@@ -193,6 +199,10 @@ test('ALLOW_PRIVATE_MEDIA=0 时拒绝内网地址', async (t) => {
     (error) =>
       error instanceof EmbeddedSubtitleError &&
       error.code === 'PRIVATE_MEDIA_URL',
+  );
+  await assert.rejects(
+    service.probe('http://127.0.0.1/movie.mkv'),
+    (error) => error.code === 'PRIVATE_MEDIA_URL',
   );
   await assert.rejects(
     service.probe('http://media.internal/movie.mkv'),
