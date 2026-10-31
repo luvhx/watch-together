@@ -37,7 +37,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -180,7 +180,7 @@ ul {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .live-dot {
@@ -195,7 +195,7 @@ ul {
   align-items: center;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   transition: color 160ms ease;
 }
 
@@ -212,7 +212,7 @@ ul {
   padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 14.5px;
   font-weight: 600;
   transition:
     background 160ms ease,
@@ -272,7 +272,7 @@ ul {
 .eyebrow {
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.14em;
 }
 
@@ -294,7 +294,7 @@ ul {
   max-width: 520px;
   margin-top: 24px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.85;
 }
 
@@ -310,7 +310,7 @@ ul {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .create-panel {
@@ -332,7 +332,7 @@ ul {
   margin-bottom: 5px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.12em;
 }
 
@@ -353,13 +353,13 @@ ul {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 7px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 
 .field label span {
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
 }
 
@@ -373,7 +373,7 @@ ul {
   outline: none;
   background: #0d0d0f;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14.5px;
   transition:
     border-color 160ms ease,
     background 160ms ease;
@@ -409,7 +409,7 @@ ul {
   border-radius: 4px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   transform: translateY(-50%);
 }
@@ -417,7 +417,7 @@ ul {
 .field-hint {
   margin-top: 6px;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -434,7 +434,7 @@ ul {
   border-radius: 7px;
   background: rgba(255, 141, 125, 0.06);
   color: var(--danger);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -446,7 +446,7 @@ ul {
   padding-top: 15px;
   border-top: 1px solid var(--line);
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 
@@ -462,7 +462,7 @@ ul {
   padding: 22px 0;
   border-top: 1px solid var(--line);
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 /* ---------- 加入页 ---------- */
@@ -489,7 +489,7 @@ ul {
 .join-kicker {
   margin-top: 32px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .join-card h1 {
@@ -504,7 +504,7 @@ ul {
 .join-byline {
   margin-top: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .join-details {
@@ -528,13 +528,13 @@ ul {
   display: block;
   margin-bottom: 2px;
   color: var(--muted-2);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .join-details b {
   display: block;
   overflow: hidden;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -552,7 +552,7 @@ ul {
   padding-top: 17px;
   border-top: 1px solid var(--line);
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .join-missing {
@@ -565,7 +565,7 @@ ul {
 .join-missing p {
   margin-bottom: 14px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 
 /* ---------- 房间顶栏 ---------- */
@@ -621,14 +621,14 @@ ul {
 .code-button > span {
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.08em;
 }
 
 .code-button b {
   color: var(--text);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.08em;
 }
@@ -642,7 +642,7 @@ ul {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .connection-pill i {
@@ -680,7 +680,7 @@ ul {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .avatar-stack {
@@ -698,7 +698,7 @@ ul {
   border: 2px solid var(--bg);
   border-radius: 50%;
   color: rgba(10, 8, 5, 0.82);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -716,7 +716,7 @@ ul {
   border-radius: 6px;
   background: transparent;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
   transition:
     color 160ms ease,
     background 160ms ease;
@@ -731,7 +731,7 @@ ul {
 
 .room-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 344px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 22px;
   align-items: start;
   padding: 24px 0 56px;
@@ -797,7 +797,7 @@ ul {
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.58);
   color: rgba(255, 255, 255, 0.76);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .status-chip i {
@@ -856,7 +856,7 @@ ul {
   margin-bottom: 9px;
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.14em;
 }
 
@@ -871,7 +871,7 @@ ul {
   max-width: 390px;
   margin: 9px auto 18px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -891,7 +891,7 @@ ul {
   gap: 12px;
   background: rgba(0, 0, 0, 0.7);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .spinner {
@@ -937,7 +937,7 @@ ul {
   max-width: 470px;
   margin: 7px 0 16px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.7;
 }
 
@@ -1102,7 +1102,7 @@ ul {
   padding: 0 4px;
   color: rgba(255, 255, 255, 0.74);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1171,7 +1171,7 @@ ul {
   gap: 5px;
   padding: 0 3px;
   color: rgba(255, 255, 255, 0.42);
-  font-size: 8px;
+  font-size: 10px;
   white-space: nowrap;
 }
 
@@ -1203,7 +1203,7 @@ ul {
   background: transparent;
   color: rgba(255, 255, 255, 0.68);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .speed-button:hover:not(:disabled) {
@@ -1224,7 +1224,7 @@ ul {
   background: transparent;
   color: rgba(255, 255, 255, 0.65);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
 }
 
@@ -1304,7 +1304,7 @@ ul {
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.04em;
 }
 
@@ -1317,7 +1317,7 @@ ul {
   margin-top: 4px;
   overflow: hidden;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1326,7 +1326,7 @@ ul {
   flex: none;
   min-height: 36px;
   padding: 0 11px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 /* ---------- 侧栏 ---------- */
@@ -1354,20 +1354,20 @@ ul {
 }
 
 .side-head h2 {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .side-code {
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 10px;
   letter-spacing: 0.06em;
 }
 
 .side-desc {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 12.5px;
   line-height: 1.65;
 }
 
@@ -1391,17 +1391,17 @@ ul {
   display: block;
   margin-bottom: 1px;
   color: var(--muted-2);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .stat-grid b {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 
 .side-card .btn {
   min-height: 35px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .side-badge {
@@ -1413,7 +1413,7 @@ ul {
   background: var(--accent-soft);
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .member-list {
@@ -1443,7 +1443,7 @@ ul {
   place-items: center;
   border-radius: 50%;
   color: rgba(10, 8, 5, 0.82);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -1458,7 +1458,7 @@ ul {
   gap: 4px;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.8);
-  font-size: 11px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1471,13 +1471,13 @@ ul {
 
 .member-role {
   color: var(--muted-2);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .you-tag {
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 6px;
+  font-size: 9px;
   letter-spacing: 0.06em;
 }
 
@@ -1485,7 +1485,7 @@ ul {
 
 .chat-card {
   display: flex;
-  height: 336px;
+  height: 360px;
   padding: 0;
   overflow: hidden;
   flex-direction: column;
@@ -1507,7 +1507,7 @@ ul {
 }
 
 .chat-title-row h2 {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -1517,7 +1517,7 @@ ul {
   gap: 4px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.06em;
 }
 
@@ -1538,7 +1538,7 @@ ul {
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .danmaku-toggle:hover {
@@ -1621,7 +1621,7 @@ ul {
   place-items: center;
   border-radius: 50%;
   color: rgba(10, 8, 5, 0.82);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -1640,7 +1640,7 @@ ul {
 .chat-message-name {
   overflow: hidden;
   color: var(--muted);
-  font-size: 9.5px;
+  font-size: 11.5px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1664,7 +1664,7 @@ ul {
   background: var(--accent-soft);
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 6px;
+  font-size: 9px;
   line-height: 1.5;
 }
 
@@ -1673,13 +1673,13 @@ ul {
   padding-left: 5px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .chat-message-text {
   margin-top: 2px;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 10.5px;
+  font-size: 12.5px;
   line-height: 1.55;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -1695,7 +1695,7 @@ ul {
   padding: 16px;
   place-items: center;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -1716,7 +1716,7 @@ ul {
   outline: none;
   background: #0d0d0f;
   color: var(--text);
-  font-size: 10.5px;
+  font-size: 12.5px;
 }
 
 .chat-form input::placeholder {
@@ -1739,7 +1739,7 @@ ul {
   border-radius: 6px;
   background: var(--text);
   color: var(--bg);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -1813,7 +1813,7 @@ ul {
   right: 12px;
   bottom: 55px;
   z-index: 9;
-  width: min(336px, calc(100% - 24px));
+  width: min(360px, calc(100% - 24px));
   max-height: min(72%, 450px);
   padding: 14px;
   overflow: auto;
@@ -1837,7 +1837,7 @@ ul {
   margin-bottom: 2px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.1em;
 }
 
@@ -1875,7 +1875,7 @@ ul {
   margin: 8px 5px 3px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 6.5px;
+  font-size: 8.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1911,6 +1911,16 @@ ul {
   color: var(--text);
 }
 
+.subtitle-option:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.subtitle-option:disabled:hover {
+  background: transparent;
+  color: var(--muted);
+}
+
 .subtitle-check {
   display: grid;
   width: 13px;
@@ -1920,7 +1930,7 @@ ul {
   border: 1px solid var(--line-strong);
   border-radius: 50%;
   color: transparent;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .subtitle-option[data-active="true"] .subtitle-check {
@@ -1937,7 +1947,7 @@ ul {
 .subtitle-option-label {
   display: block;
   overflow: hidden;
-  font-size: 9.5px;
+  font-size: 11.5px;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1948,7 +1958,7 @@ ul {
   margin-top: 1px;
   overflow: hidden;
   color: var(--muted-2);
-  font-size: 7.5px;
+  font-size: 9.5px;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1961,7 +1971,7 @@ ul {
   border-radius: 3px;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 6px;
+  font-size: 9px;
   text-transform: uppercase;
 }
 
@@ -1979,7 +1989,7 @@ ul {
   border-radius: 6px;
   background: transparent;
   color: var(--muted-2);
-  font-size: 13px;
+  font-size: 14.5px;
 }
 
 .subtitle-remove:hover {
@@ -1990,8 +2000,12 @@ ul {
 .subtitle-empty {
   padding: 6px;
   color: var(--muted-2);
-  font-size: 8.5px;
+  font-size: 10.5px;
   line-height: 1.6;
+}
+
+.subtitle-empty-error {
+  color: var(--danger);
 }
 
 .subtitle-form {
@@ -2003,7 +2017,7 @@ ul {
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .subtitle-url-row {
@@ -2021,7 +2035,7 @@ ul {
   outline: none;
   background: #0d0d0f;
   color: var(--text);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .subtitle-url-row input::placeholder {
@@ -2040,7 +2054,7 @@ ul {
   border-radius: 6px;
   background: transparent;
   color: var(--text);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .subtitle-url-row button:hover:not(:disabled) {
@@ -2055,14 +2069,14 @@ ul {
 .subtitle-hint {
   margin-top: 6px;
   color: var(--muted-2);
-  font-size: 7.5px;
+  font-size: 9.5px;
   line-height: 1.55;
 }
 
 .subtitle-error {
   margin-top: 6px;
   color: var(--danger);
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -2071,7 +2085,7 @@ ul {
   padding-top: 8px;
   border-top: 1px solid var(--line);
   color: var(--muted-2);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .ass-cue {
@@ -2142,7 +2156,7 @@ video::cue {
   border-radius: 7px;
   background: #171719;
   color: var(--text);
-  font-size: 10.5px;
+  font-size: 12.5px;
   line-height: 1.5;
   opacity: 0;
   animation: toast-in 180ms ease forwards;
@@ -2233,7 +2247,7 @@ video::cue {
   }
 
   .room-main {
-    grid-template-columns: minmax(0, 1fr) 310px;
+    grid-template-columns: minmax(0, 1fr) 328px;
     gap: 18px;
   }
 
@@ -2242,7 +2256,7 @@ video::cue {
   }
 
   .chat-card {
-    height: 320px;
+    height: 344px;
   }
 }
 
@@ -2277,7 +2291,7 @@ video::cue {
 
   .chat-card {
     grid-column: 1 / -1;
-    height: 350px;
+    height: 380px;
   }
 }
 
@@ -2292,7 +2306,7 @@ video::cue {
   }
 
   .topbar-note {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .hero {
@@ -2305,7 +2319,7 @@ video::cue {
 
   .lede {
     margin-top: 18px;
-    font-size: 13.5px;
+    font-size: 15px;
   }
 
   .feature-chips {
@@ -2379,7 +2393,7 @@ video::cue {
   .host-chip {
     min-height: 23px;
     padding: 0 7px;
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .host-chip .icon {
@@ -2397,7 +2411,7 @@ video::cue {
 
   .player-curtain p {
     margin: 7px auto 14px;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .player-bottom {
@@ -2423,8 +2437,8 @@ video::cue {
   }
 
   .time-display {
-    padding: 0 2px;
-    font-size: 9px;
+    padding: 0 1px;
+    font-size: 10.5px;
   }
 
   .sync-indicator span {
@@ -2439,7 +2453,7 @@ video::cue {
   .subtitle-button {
     min-width: 28px;
     height: 23px;
-    font-size: 7.5px;
+    font-size: 9.5px;
   }
 
   .stage-meta {
@@ -2462,7 +2476,7 @@ video::cue {
 
   .chat-card {
     grid-column: auto;
-    height: 330px;
+    height: 350px;
   }
 
   .subtitle-panel {

@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 
 import { loadConfig } from './config.js';
+import { EmbeddedSubtitleService } from './embedded-subtitles.js';
 import { createHttpHandler } from './http.js';
 import { RoomHub } from './realtime.js';
 import { RoomStore } from './rooms.js';
@@ -9,6 +10,7 @@ export function createApplication({
   config = loadConfig(),
   logger = console,
   publicDir,
+  embeddedSubtitles,
 } = {}) {
   const store = new RoomStore({
     roomTtlMs: config.roomTtlMs,
@@ -16,10 +18,18 @@ export function createApplication({
     maxRooms: config.maxRooms,
   });
   const hub = new RoomHub({ store, config, logger });
+  const subtitleService =
+    embeddedSubtitles ??
+    new EmbeddedSubtitleService({
+      ffmpegPath: config.ffmpegPath,
+      ffprobePath: config.ffprobePath,
+      logger,
+    });
   const handleRequest = createHttpHandler({
     store,
     hub,
     config,
+    embeddedSubtitles: subtitleService,
     ...(publicDir ? { publicDir } : {}),
   });
 
@@ -52,6 +62,7 @@ export function createApplication({
     store,
     hub,
     server,
+    embeddedSubtitles: subtitleService,
     async listen(port = config.port, host = config.host) {
       await new Promise((resolve, reject) => {
         const onError = (error) => {
@@ -71,6 +82,7 @@ export function createApplication({
     async close() {
       if (closed) return;
       closed = true;
+      subtitleService.close?.();
       hub.close();
       await new Promise((resolve) => {
         const timer = setTimeout(() => {

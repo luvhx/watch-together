@@ -81,6 +81,12 @@ const state = {
     loading: false,
     signature: '',
     idCounter: 0,
+    embedded: {
+      status: 'idle',
+      tracks: [],
+      error: '',
+      loadingId: null,
+    },
   },
 };
 
@@ -1873,7 +1879,9 @@ function onVideoError() {
   let message =
     '请检查直链是否仍可访问且未过期；HLS 片源还需要允许跨域请求（CORS）。';
   if (mediaError?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-    message = '浏览器无法解码这个格式，或直链已失效。建议使用 MP4（H.264）或 HLS。';
+    message = isMatroskaUrl(state.sourceUrl)
+      ? '浏览器无法解码这个 MKV。MKV/HEVC/10-bit 支持取决于浏览器；内封字幕可读取，但视频本身需能播放。建议改用 MP4（H.264）或 HLS。'
+      : '浏览器无法解码这个格式，或直链已失效。建议使用 MP4（H.264）或 HLS。';
   } else if (mediaError?.code === MediaError.MEDIA_ERR_NETWORK) {
     message = '下载片源时网络中断，请检查链接和网络。';
   } else if (window.location.protocol === 'https:' && /^http:\/\//i.test(state.sourceUrl)) {
@@ -2249,6 +2257,12 @@ function setSubtitlePanel(open) {
     els.subtitleButton.setAttribute('aria-expanded', 'true');
     showPlayerControls();
     els.subtitleError.hidden = true;
+    if (
+      state.subtitle.embedded.status === 'idle' &&
+      isMatroskaUrl(state.room?.videoUrl)
+    ) {
+      loadEmbeddedTracks();
+    }
   } else {
     els.subtitlePanel.hidden = true;
     state.subtitle.panelOpen = false;
@@ -2274,6 +2288,7 @@ function appendSubtitleOption(container, options) {
   button.className = 'subtitle-option';
   button.type = 'button';
   button.dataset.active = options.active ? 'true' : 'false';
+  button.disabled = Boolean(options.disabled);
   button.title = options.title || options.label;
   button.addEventListener('click', options.onSelect);
 
@@ -2359,6 +2374,8 @@ function renderSubtitleList() {
     }
   }
 
+  renderEmbeddedSubtitleOptions();
+
   if (state.subtitle.external.length) {
     appendSubtitleGroup(els.subtitleList, '已添加字幕');
     for (const track of state.subtitle.external) {
@@ -2380,6 +2397,168 @@ function renderSubtitleList() {
   }
 
   updateSubtitleButton();
+}
+
+
+function isMatroskaUrl(rawUrl) {
+  try {
+    return /\.(mkv|mk3d|mka)$/i.test(new URL(rawUrl).pathname);
+  } catch {
+    return false;
+  }
+}
+
+function renderEmbeddedSubtitleOptions() {
+  const embedded = state.subtitle.embedded;
+  appendSubtitleGroup(els.subtitleList, '影片内封字幕');
+
+  if (embedded.status === 'idle') {
+    appendSubtitleOption(els.subtitleList, {
+      label: '扫描内封字幕',
+      meta: '由服务器读取影片内的文字字幕轨',
+      onSelect: () => loadEmbeddedTracks(),
+    });
+    return;
+  }
+
+  if (embedded.status === 'loading') {
+    const loading = document.createElement('p');
+    loading.className = 'subtitle-empty';
+    loading.textContent = '正在扫描影片内封字幕，可能需要几秒…';
+    els.subtitleList.append(loading);
+    return;
+  }
+
+  if (embedded.status === 'error') {
+    const error = document.createElement('p');
+    error.className = 'subtitle-empty subtitle-empty-error';
+    error.textContent = embedded.error || '内封字幕读取失败。';
+    els.subtitleList.append(error);
+    appendSubtitleOption(els.subtitleList, {
+      label: '重新扫描内封字幕',
+      meta: '再次请求服务器读取字幕轨',
+      onSelect: () => {
+        state.subtitle.embedded.status = 'idle';
+        loadEmbeddedTracks();
+      },
+    });
+    return;
+  }
+
+  if (embedded.tracks.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'subtitle-empty';
+    empty.textContent = '没有发现内封字幕轨。';
+    els.subtitleList.append(empty);
+    return;
+  }
+
+  for (const track of embedded.tracks) {
+    const loading = embedded.loadingId === track.id;
+    const metaParts = ['内封', track.codec?.toUpperCase()].filter(Boolean);
+    if (track.languageLabel) metaParts.push(track.languageLabel);
+    if (track.default) metaParts.push('默认');
+    appendSubtitleOption(els.subtitleList, {
+      label: loading ? `${track.label} · 提取中…` : track.label,
+      meta: metaParts.join(' · '),
+      format: 'ass',
+      active: false,
+      disabled: !track.supported || (embedded.loadingId !== null && !loading),
+      title: track.supported ? '从影片内封轨道提取' : '图形字幕暂不支持',
+      onSelect: () => loadEmbeddedSubtitle(track),
+    });
+  }
+}
+
+async function loadEmbeddedTracks() {
+  if (!state.roomId || state.subtitle.embedded.status === 'loading') return;
+  const embedded = state.subtitle.embedded;
+  embedded.status = 'loading';
+  embedded.error = '';
+  if (state.subtitle.panelOpen) renderSubtitleList();
+
+  try {
+    const data = await api(
+      `/api/rooms/${encodeURIComponent(state.roomId)}/embedded-subtitles`,
+    );
+    embedded.tracks = Array.isArray(data.tracks) ? data.tracks : [];
+    embedded.status = 'ready';
+  } catch (error) {
+    embedded.status = 'error';
+    embedded.error =
+      error.code === 'FFMPEG_UNAVAILABLE'
+        ? '服务器未安装 FFmpeg，无法读取内封字幕。'
+        : error.message || '内封字幕读取失败。';
+  }
+  if (state.subtitle.panelOpen) renderSubtitleList();
+}
+
+async function loadEmbeddedSubtitle(track) {
+  if (state.subtitle.embedded.loadingId !== null) return;
+  const embedded = state.subtitle.embedded;
+  const existing = state.subtitle.external.find(
+    (item) => item.embeddedKey === `${state.roomId}:${track.id}`,
+  );
+  if (existing) {
+    activateExternalSubtitle(existing);
+    return;
+  }
+
+  embedded.loadingId = track.id;
+  if (state.subtitle.panelOpen) renderSubtitleList();
+  toast(`正在提取内封字幕：${track.label}…`);
+
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 130_000);
+  try {
+    const response = await fetch(
+      `/api/rooms/${encodeURIComponent(state.roomId)}/embedded-subtitles/${track.id}`,
+      { signal: controller.signal },
+    );
+    if (!response.ok) {
+      let message = `内封字幕提取失败（HTTP ${response.status}）`;
+      try {
+        const body = await response.json();
+        message = body?.error?.message || message;
+        if (body?.error?.code === 'FFMPEG_UNAVAILABLE') {
+          message = '服务器未安装 FFmpeg，无法读取内封字幕。';
+        }
+      } catch {
+        // 保留默认错误。
+      }
+      throw new Error(message);
+    }
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength > 24 * 1_024 * 1_024) {
+      throw new Error('内封字幕文件过大，暂不支持。');
+    }
+    const parsed = parseSubtitleText(decodeSubtitleBuffer(buffer), {
+      url: response.url,
+    });
+    const subtitleTrack = {
+      id: `sub-${++state.subtitle.idCounter}`,
+      label: `内封 · ${track.label}`,
+      host: '影片内封',
+      url: response.url,
+      format: parsed.format,
+      cues: parsed.cues,
+      ass: parsed.ass,
+      embeddedKey: `${state.roomId}:${track.id}`,
+    };
+    state.subtitle.external.push(subtitleTrack);
+    activateExternalSubtitle(subtitleTrack);
+    toast(`已加载内封字幕：${track.label}`);
+  } catch (error) {
+    const message =
+      error.name === 'AbortError'
+        ? '内封字幕提取超时，尤其常见于较大的 MKV 文件。'
+        : error.message || '内封字幕提取失败。';
+    toast(message, 'error');
+  } finally {
+    window.clearTimeout(timer);
+    embedded.loadingId = null;
+    if (state.subtitle.panelOpen) renderSubtitleList();
+  }
 }
 
 function disableNativeAndHls() {

@@ -22,7 +22,10 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-RUN addgroup -S -g 1001 watch \
+RUN apk add --no-cache ffmpeg \
+    && ffmpeg -version >/dev/null \
+    && ffprobe -version >/dev/null \
+    && addgroup -S -g 1001 watch \
     && adduser -S -D -H -u 1001 -G watch watch
 
 COPY --from=dependencies --chown=watch:watch /app/node_modules ./node_modules

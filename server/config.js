@@ -39,5 +39,7 @@ export function loadConfig(env = process.env) {
     createLimitPer10Min: integerFromEnv(env, 'CREATE_LIMIT_PER_10MIN', 20, 1, 1_000),
     wsLimitPerMin: integerFromEnv(env, 'WS_LIMIT_PER_MIN', 90, 1, 10_000),
     logRequests: booleanFromEnv(env, 'LOG_REQUESTS', false),
+    ffmpegPath: env.FFMPEG_PATH || 'ffmpeg',
+    ffprobePath: env.FFPROBE_PATH || 'ffprobe',
   });
 }

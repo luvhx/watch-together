@@ -7,7 +7,7 @@ export const quietLogger = {
   error() {},
 };
 
-export async function startTestApp(overrides = {}) {
+export async function startTestApp(overrides = {}, applicationOptions = {}) {
   const config = {
     ...loadConfig({}),
     syncIntervalMs: 5_000,
@@ -16,7 +16,7 @@ export async function startTestApp(overrides = {}) {
     wsLimitPerMin: 1_000,
     ...overrides,
   };
-  const app = createApplication({ config, logger: quietLogger });
+  const app = createApplication({ config, logger: quietLogger, ...applicationOptions });
   await app.listen(0, '127.0.0.1');
   const { port } = app.server.address();
   return {

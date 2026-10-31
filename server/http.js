@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { EmbeddedSubtitleError } from './embedded-subtitles.js';
 import { createRateLimiter } from './rate-limit.js';
 import {
   normalizeRoomId,
@@ -38,12 +39,13 @@ const CONTENT_TYPES = new Map([
 ]);
 
 class HttpError extends Error {
-  constructor(status, code, message, headers = {}) {
+  constructor(status, code, message, headers = {}, expose = false) {
     super(message);
     this.name = 'HttpError';
     this.status = status;
     this.code = code;
     this.headers = headers;
+    this.expose = expose;
   }
 }
 
@@ -87,7 +89,9 @@ function sendError(res, error, requestId) {
   const status = error.status || 500;
   const code = error.code || 'INTERNAL_ERROR';
   const message =
-    status >= 500 ? '服务器开小差了，请稍后再试' : error.message || '请求失败';
+    status >= 500 && !error.expose
+      ? '服务器开小差了，请稍后再试'
+      : error.message || '请求失败';
   if (status >= 500) {
     console.error(`[http] ${requestId} ${error.stack || error}`);
   } else if (status === 429) {
@@ -257,6 +261,7 @@ export function createHttpHandler({
   hub,
   config,
   publicDir = DEFAULT_PUBLIC_DIR,
+  embeddedSubtitles = null,
   now = Date.now,
 }) {
   const createLimiter = createRateLimiter({
@@ -267,6 +272,16 @@ export function createHttpHandler({
   const lookupLimiter = createRateLimiter({
     limit: 240,
     windowMs: 60 * 1_000,
+    now,
+  });
+  const embeddedLimiter = createRateLimiter({
+    limit: 30,
+    windowMs: 60 * 1_000,
+    now,
+  });
+  const embeddedExtractLimiter = createRateLimiter({
+    limit: 12,
+    windowMs: 10 * 60 * 1_000,
     now,
   });
   let requestCounter = 0;
@@ -336,6 +351,60 @@ export function createHttpHandler({
         throw new HttpError(405, 'METHOD_NOT_ALLOWED', '不支持的请求方法', {
           Allow: 'POST',
         });
+      }
+
+
+      const embeddedFileMatch = pathname.match(
+        /^\/api\/rooms\/([^/]+)\/embedded-subtitles\/(\d+)\/?$/,
+      );
+      const embeddedListMatch = pathname.match(
+        /^\/api\/rooms\/([^/]+)\/embedded-subtitles\/?$/,
+      );
+      if (embeddedFileMatch || embeddedListMatch) {
+        if (req.method !== 'GET') {
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', '不支持的请求方法', {
+            Allow: 'GET',
+          });
+        }
+        let roomId;
+        try {
+          roomId = normalizeRoomId(decodeURIComponent((embeddedFileMatch || embeddedListMatch)[1]));
+        } catch {
+          roomId = null;
+        }
+        if (!roomId) throw new HttpError(404, 'ROOM_NOT_FOUND', '房间不存在');
+        const room = store.get(roomId);
+        if (!room) throw new HttpError(404, 'ROOM_NOT_FOUND', '房间不存在或已过期');
+        if (!embeddedSubtitles) {
+          throw new HttpError(503, 'FFMPEG_UNAVAILABLE', '服务器未启用内封字幕读取', {}, true);
+        }
+
+        const ip = clientIp(req, config);
+        rateLimitOrThrow(embeddedLimiter(ip));
+        try {
+          if (embeddedListMatch) {
+            const tracks = await embeddedSubtitles.probe(room.videoUrl);
+            return sendJson(res, 200, { tracks });
+          }
+
+          rateLimitOrThrow(embeddedExtractLimiter(ip));
+          const streamId = Number.parseInt(embeddedFileMatch[2], 10);
+          const result = await embeddedSubtitles.extract(room.videoUrl, streamId);
+          res.writeHead(200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Length': result.buffer.length,
+            'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(result.filename)}`,
+            'Cache-Control': 'private, max-age=600',
+            'X-Subtitle-Format': result.format,
+          });
+          res.end(result.buffer);
+          return;
+        } catch (error) {
+          if (error instanceof EmbeddedSubtitleError) {
+            throw new HttpError(error.status, error.code, error.message, {}, true);
+          }
+          throw error;
+        }
       }
 
       if (pathname.startsWith('/api/rooms/')) {

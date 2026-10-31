@@ -19,6 +19,8 @@
 - **刷新不散场**：房主刷新/短暂断线后，房间暂停在原进度，回来后可以继续。
 - **MP4 / WebM / HLS**：HLS 按需加载内置的 hls.js，Safari 使用原生 HLS。
 - **外挂字幕**：读取浏览器 / HLS 内嵌字幕轨道，也可通过 URL 添加 WebVTT、SRT、ASS / SSA；ASS 支持常用字体、颜色、描边、阴影、对齐和定位样式。
+- **MKV 内封字幕**：服务端使用 FFprobe / FFmpeg 扫描影片内封文字字幕，按需提取为 ASS；PGS 等图形字幕不支持。
+- **更易读的界面**：整体上调小字号，聊天、侧栏、字幕菜单和播放器控制更适合长时间观看。
 - **房间聊天与弹幕**：房间内置实时聊天室，新消息可同时以弹幕从视频画面上飘过；支持一键开关弹幕，聊天记录仍保留。
 - **开箱即用**：无需账号、数据库、Redis、`.env` 或构建步骤；简洁深色界面，桌面与移动端自适应。
 
@@ -44,7 +46,7 @@ position_at(T) = anchor_position + (T - anchor_at) / 1000 * rate
 
 ## Docker Compose 部署
 
-镜像已发布到 GHCR，支持 `linux/amd64` 与 `linux/arm64`，无需配置环境变量。
+镜像已发布到 GHCR，支持 `linux/amd64` 与 `linux/arm64`，无需配置环境变量；镜像内置 FFmpeg，可直接读取 MKV 内封字幕。
 
 ```bash
 docker compose pull
@@ -70,7 +72,7 @@ docker compose pull && docker compose up -d
 
 ## 本地开发
 
-要求 Node.js 20.19+（推荐 24）。
+要求 Node.js 20.19+（推荐 24）。读取 MKV 内封字幕还需要本机安装 `ffmpeg` / `ffprobe`；Docker 镜像已内置。
 
 ```bash
 npm ci
@@ -119,6 +121,10 @@ npm run check   # 所有 JS 语法检查
 - **仅自己可见**：字幕轨道与开关只在当前播放器内生效，不改变其他观众的字幕。
 - **跨域**：浏览器需要直接 `fetch` 字幕文件，字幕服务器必须允许 CORS；
 - **编码**：自动识别 UTF-8 / UTF-16 BOM，并回退尝试 GB18030 / Big5。
+- **MKV 内封字幕**：浏览器原生 `<video>` 无法读取 MKV 容器里的字幕轨。打开 CC 菜单时，服务器会用 FFprobe 扫描内封字幕并用 FFmpeg 按需转成 ASS；首次提取可能需要几秒到数十秒，之后会缓存。
+- **仅支持文字字幕**：ASS / SSA / SRT / WebVTT / mov_text 等可以转换；PGS、DVD 等图形字幕会标记为不支持。
+- **视频解码仍取决于浏览器**：提取字幕不会改变视频编码兼容性；MKV / HEVC 是否能播放由浏览器决定。
+- **服务器访问**：读取内封字幕时服务器需要能访问影片 URL，会阻止内网/回环地址并限制提取频率；这会消耗服务器带宽。
 - **内置示例**：在 CC 菜单粘贴 `/subtitles/demo.ass` 或 `/subtitles/demo.vtt`，可以直接预览字幕与 ASS 样式。
 
 ## 直链要求
@@ -189,6 +195,7 @@ server {
 - 同一来源限制房间创建、查询与 WebSocket 握手频率；单房间人数和房间总数均有上限。
 - 响应包含 CSP、`X-Frame-Options: DENY`、`nosniff`、`Referrer-Policy: no-referrer`。
 - 生产环境请务必配置 HTTPS：房主凭证保存在浏览器本地，并通过 WebSocket 传输。
+- 内封字幕读取会由服务器访问影片地址；只允许公网 HTTP(S)，并阻止回环、内网和链路本地地址。
 
 ## HTTP / WebSocket 协议
 
@@ -200,6 +207,8 @@ server {
 | `GET` | `/api/rooms/:id` | 读取公开房间信息（不含房主凭证） |
 | `DELETE` | `/api/rooms/:id` | 房主关闭房间，`Authorization: Bearer <hostKey>` |
 | `GET` | `/api/health` | 健康检查 |
+| `GET` | `/api/rooms/:id/embedded-subtitles` | 扫描房间影片的内封字幕轨 |
+| `GET` | `/api/rooms/:id/embedded-subtitles/:track` | 提取指定内封字幕为 ASS |
 | `GET` | `/r/:id` | 邀请链接，302 到首页房间视图 |
 
 ### WebSocket `/ws?room=<roomId>`
@@ -232,6 +241,7 @@ server {
 ├── server/
 │   ├── app.js          # 应用装配与优雅关闭
 │   ├── config.js       # 环境变量
+│   ├── embedded-subtitles.js # FFmpeg 内封字幕探测与提取
 │   ├── http.js         # 静态资源、API、安全响应头
 │   ├── realtime.js     # WebSocket 房间中枢
 │   ├── rooms.js        # 房间与播放时间轴

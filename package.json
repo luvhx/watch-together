@@ -1,6 +1,6 @@
 {
   "name": "watch-together",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "description": "一起看：房主设置视频直链，访客从同一地址加载并同步播放进度。",
   "type": "module",
@@ -11,7 +11,7 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "test": "node --test test/*.test.js",
-    "check": "node --check server/index.js && node --check server/app.js && node --check server/config.js && node --check server/http.js && node --check server/realtime.js && node --check server/rooms.js && node --check public/app.js && node --check public/subtitles.js"
+    "check": "node --check server/index.js && node --check server/app.js && node --check server/config.js && node --check server/embedded-subtitles.js && node --check server/http.js && node --check server/realtime.js && node --check server/rooms.js && node --check public/app.js && node --check public/subtitles.js"
   },
   "dependencies": {
     "hls.js": "^1.7.3",
