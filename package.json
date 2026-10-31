@@ -1,6 +1,6 @@
 {
   "name": "watch-together",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "一起看：房主设置视频直链，访客从同一地址加载并同步播放进度。",
   "type": "module",

@@ -2,9 +2,12 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
 
+import { loadConfig } from '../server/config.js';
+
 import {
   EmbeddedSubtitleError,
   EmbeddedSubtitleService,
+  isDangerousAddress,
   isPrivateAddress,
   parseFfprobeStreams,
 } from '../server/embedded-subtitles.js';
@@ -62,12 +65,18 @@ function fakeChild({ stdout = '', stderr = '', code = 0, error = null } = {}) {
   return child;
 }
 
-function createService({ probeJson = PROBE_JSON, ffmpegOutput = ASS_OUTPUT, error } = {}) {
+function createService({
+  probeJson = PROBE_JSON,
+  ffmpegOutput = ASS_OUTPUT,
+  error,
+  allowPrivateMedia = true,
+} = {}) {
   const calls = [];
   const service = new EmbeddedSubtitleService({
     ffmpegPath: 'fake-ffmpeg',
     ffprobePath: 'fake-ffprobe',
     lookup: async () => [{ address: '93.184.216.34', family: 4 }],
+    allowPrivateMedia,
     spawnProcess(command, args, options) {
       calls.push({ command, args, options });
       if (error) return fakeChild({ error });
@@ -137,7 +146,7 @@ test('图形字幕拒绝提取，空字幕输出报错', async (t) => {
   );
 });
 
-test('阻止内网地址与服务端 SSRF', async (t) => {
+test('默认允许局域网媒体，但拦截回环和云 metadata 地址', async (t) => {
   const { service, calls } = createService();
   t.after(() => service.close());
 
@@ -145,22 +154,51 @@ test('阻止内网地址与服务端 SSRF', async (t) => {
     service.probe('http://127.0.0.1/movie.mkv'),
     (error) =>
       error instanceof EmbeddedSubtitleError &&
-      error.code === 'PRIVATE_MEDIA_URL',
+      error.code === 'BLOCKED_MEDIA_ADDRESS',
   );
   await assert.rejects(
-    service.probe('http://localhost/movie.mkv'),
-    (error) => error.code === 'PRIVATE_MEDIA_URL',
-  );
-  await assert.rejects(
-    service.probe('http://metadata.internal/movie.mkv'),
-    (error) => error.code === 'PRIVATE_MEDIA_URL',
+    service.probe('http://169.254.169.254/latest/meta-data'),
+    (error) => error.code === 'BLOCKED_MEDIA_ADDRESS',
   );
   assert.equal(calls.length, 0);
+
+  const tracks = await service.probe('http://10.0.0.5/movie.mkv');
+  assert.equal(tracks.length, 3);
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].args.includes('http://10.0.0.5/movie.mkv'));
+
   assert.equal(isPrivateAddress('10.0.0.1'), true);
   assert.equal(isPrivateAddress('192.168.1.4'), true);
+  assert.equal(isPrivateAddress('100.64.0.1'), true);
   assert.equal(isPrivateAddress('::1'), true);
   assert.equal(isPrivateAddress('fd00::1'), true);
   assert.equal(isPrivateAddress('93.184.216.34'), false);
+  assert.equal(isDangerousAddress('127.0.0.1'), true);
+  assert.equal(isDangerousAddress('169.254.1.2'), true);
+  assert.equal(isDangerousAddress('10.0.0.1'), false);
+});
+
+test('ALLOW_PRIVATE_MEDIA 默认开启并可关闭', () => {
+  assert.equal(loadConfig({}).allowPrivateMedia, true);
+  assert.equal(loadConfig({ ALLOW_PRIVATE_MEDIA: '0' }).allowPrivateMedia, false);
+  assert.equal(loadConfig({ ALLOW_PRIVATE_MEDIA: '1' }).allowPrivateMedia, true);
+});
+
+test('ALLOW_PRIVATE_MEDIA=0 时拒绝内网地址', async (t) => {
+  const { service, calls } = createService({ allowPrivateMedia: false });
+  t.after(() => service.close());
+
+  await assert.rejects(
+    service.probe('http://10.0.0.5/movie.mkv'),
+    (error) =>
+      error instanceof EmbeddedSubtitleError &&
+      error.code === 'PRIVATE_MEDIA_URL',
+  );
+  await assert.rejects(
+    service.probe('http://media.internal/movie.mkv'),
+    (error) => error.code === 'PRIVATE_MEDIA_URL',
+  );
+  assert.equal(calls.length, 0);
 });
 
 test('FFmpeg 缺失时返回可识别的 503 错误', async (t) => {

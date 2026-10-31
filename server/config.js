@@ -41,5 +41,7 @@ export function loadConfig(env = process.env) {
     logRequests: booleanFromEnv(env, 'LOG_REQUESTS', false),
     ffmpegPath: env.FFMPEG_PATH || 'ffmpeg',
     ffprobePath: env.FFPROBE_PATH || 'ffprobe',
+    // 自托管媒体库常在局域网/Tailscale 上；公网实例可设为 0 收紧。
+    allowPrivateMedia: booleanFromEnv(env, 'ALLOW_PRIVATE_MEDIA', true),
   });
 }

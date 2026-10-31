@@ -77,11 +77,46 @@ export function isPrivateAddress(address) {
   if (version !== 6) return true;
 
   if (normalized === '::' || normalized === '::1') return true;
+  if (normalized === 'fd00:ec2::254') return true;
   if (normalized.startsWith('::ffff:')) {
     const mapped = normalized.slice('::ffff:'.length);
     if (isIP(mapped) === 4) return isPrivateIpv4(mapped);
   }
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) return true;
+  if (/^fe[89ab]/.test(normalized)) return true;
+  if (normalized.startsWith('ff')) return true;
+  return false;
+}
+
+function isDangerousIpv4(address) {
+  const parts = address.split('.').map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return true;
+  }
+  const [a, b, c] = parts;
+  return (
+    a === 0 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    address === '100.100.100.200' ||
+    address === '168.63.129.16' ||
+    (a === 192 && b === 0 && c === 0) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224
+  );
+}
+
+export function isDangerousAddress(address) {
+  const normalized = String(address).replace(/^\[|\]$/g, '').toLowerCase();
+  const version = isIP(normalized);
+  if (version === 4) return isDangerousIpv4(normalized);
+  if (version !== 6) return true;
+
+  if (normalized === '::' || normalized === '::1') return true;
+  if (normalized.startsWith('::ffff:')) {
+    const mapped = normalized.slice('::ffff:'.length);
+    if (isIP(mapped) === 4) return isDangerousIpv4(mapped);
+  }
   if (/^fe[89ab]/.test(normalized)) return true;
   if (normalized.startsWith('ff')) return true;
   return false;
@@ -259,6 +294,7 @@ export class EmbeddedSubtitleService {
     probeTimeoutMs = 25_000,
     extractTimeoutMs = 120_000,
     maxConcurrent = 2,
+    allowPrivateMedia = true,
   } = {}) {
     this.ffmpegPath = ffmpegPath;
     this.ffprobePath = ffprobePath;
@@ -268,6 +304,7 @@ export class EmbeddedSubtitleService {
     this.probeTimeoutMs = probeTimeoutMs;
     this.extractTimeoutMs = extractTimeoutMs;
     this.maxConcurrent = maxConcurrent;
+    this.allowPrivateMedia = Boolean(allowPrivateMedia);
     this.active = 0;
     this.waiters = [];
     this.probeCache = new Map();
@@ -312,7 +349,7 @@ export class EmbeddedSubtitleService {
     }
 
     const hostname = url.hostname.replace(/^\[|\]$/g, '');
-    if (isLocalHostname(hostname)) {
+    if (!this.allowPrivateMedia && isLocalHostname(hostname)) {
       throw new EmbeddedSubtitleError(400, 'PRIVATE_MEDIA_URL', '不允许读取内网影片地址');
     }
 
@@ -326,7 +363,20 @@ export class EmbeddedSubtitleService {
         throw new EmbeddedSubtitleError(422, 'MEDIA_UNREACHABLE', '无法解析影片地址');
       }
     }
-    if (!addresses.length || addresses.some((item) => isPrivateAddress(item.address))) {
+    if (!addresses.length) {
+      throw new EmbeddedSubtitleError(422, 'MEDIA_UNREACHABLE', '无法解析影片地址');
+    }
+    if (addresses.some((item) => isDangerousAddress(item.address))) {
+      throw new EmbeddedSubtitleError(
+        400,
+        'BLOCKED_MEDIA_ADDRESS',
+        '不允许读取回环、链路本地或保留影片地址',
+      );
+    }
+    if (
+      !this.allowPrivateMedia &&
+      addresses.some((item) => isPrivateAddress(item.address))
+    ) {
       throw new EmbeddedSubtitleError(400, 'PRIVATE_MEDIA_URL', '不允许读取内网影片地址');
     }
     return url.href;

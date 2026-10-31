@@ -23,6 +23,7 @@ export function createApplication({
     new EmbeddedSubtitleService({
       ffmpegPath: config.ffmpegPath,
       ffprobePath: config.ffprobePath,
+      allowPrivateMedia: config.allowPrivateMedia,
       logger,
     });
   const handleRequest = createHttpHandler({
